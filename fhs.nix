@@ -1,39 +1,52 @@
-{ lib, pkgs, enableJulia ? true, juliaVersion ? "1.10.1", enableConda ? false
-, enablePython ? false, enableQuarto ? true, condaInstallationPath ? "~/.conda"
-, condaJlEnv ? "conda_jl", pythonVersion ? "3.13", enableGraphical ? false
-, enableNVIDIA ? false, enableNode ? false, commandName ? "scientific-fhs"
-, commandScript ? "bash", texliveScheme ? pkgs.texlive.combined.scheme-minimal
-, extraOutputsToInstall ? [ "man" "dev" ], }:
-with lib;
-let
+{
+  lib,
+  pkgs,
+  enableJulia ? true,
+  juliaVersion ? "1.10.1",
+  enableConda ? false,
+  enablePython ? false,
+  enableQuarto ? true,
+  condaInstallationPath ? "~/.conda",
+  condaJlEnv ? "conda_jl",
+  pythonVersion ? "3.13",
+  enableGraphical ? false,
+  enableNVIDIA ? false,
+  enableNode ? false,
+  commandName ? "scientific-fhs",
+  commandScript ? "bash",
+  texliveScheme ? pkgs.texlive.combined.scheme-minimal,
+  extraOutputsToInstall ? ["man" "dev"],
+}:
+with lib; let
   standardPackages = pkgs:
     with pkgs;
-    [
-      autoconf
-      binutils
-      clang
-      cmake
-      expat
-      gcc
-      gfortran
-      gmp
-      gnumake
-      gperf
-      libxml2
-      m4
-      nss
-      openssl
-      stdenv.cc
-      unzip
-      utillinux
-      which
-      texliveScheme
-      ncurses
-    ] ++ lib.optional enableNode pkgs.nodejs;
+      [
+        autoconf
+        binutils
+        clang
+        cmake
+        expat
+        gcc
+        gfortran
+        gmp
+        gnumake
+        gperf
+        libxml2
+        m4
+        nss
+        openssl
+        stdenv.cc
+        unzip
+        utillinux
+        which
+        texliveScheme
+        ncurses
+      ]
+      ++ lib.optional enableNode pkgs.nodejs;
 
   graphicalPackages = pkgs:
-    with pkgs; [
-      # alsaLib
+    (with pkgs; [
+      alsa-lib
       at-spi2-atk
       at-spi2-core
       atk
@@ -57,7 +70,7 @@ let
       libcap
       libdrm
       # libgnome-keyring3
-      # libgpgerror
+      libgpg-error
       libnotify
       libpng
       libsecret
@@ -76,28 +89,30 @@ let
       vulkan-headers
       vulkan-validation-layers
       wayland # for Julia
-      xorg.libICE 
-      xorg.libSM
-      xorg.libX11
-      xorg.libXScrnSaver
-      xorg.libXcomposite
-      xorg.libXcursor
-      xorg.libXcursor
-      xorg.libXdamage
-      xorg.libXext
-      xorg.libXfixes
-      xorg.libXi
-      xorg.libXinerama
-      xorg.libXrandr
-      xorg.libXrender
-      xorg.libXt
-      xorg.libXtst
-      xorg.libXxf86vm
-      xorg.libxcb
-      xorg.libxkbfile
-      xorg.xorgproto
       zlib
-    ];
+    ])
+    ++ (with pkgs.xorg; [
+      libICE
+      libSM
+      libX11
+      libXScrnSaver
+      libXcomposite
+      libXcursor
+      libXcursor
+      libXdamage
+      libXext
+      libXfixes
+      libXi
+      libXinerama
+      libXrandr
+      libXrender
+      libXt
+      libXtst
+      libXxf86vm
+      libxcb
+      libxkbfile
+      xorgproto
+    ]);
 
   nvidiaPackages = pkgs:
     with pkgs; [
@@ -106,22 +121,20 @@ let
       linuxPackages.nvidia_x11
     ];
 
-  quartoPackages = pkgs:
-    let quarto = pkgs.callPackage ./quarto.nix { rWrapper = null; };
-    in [ quarto ];
+  quartoPackages = pkgs: let
+    quarto = pkgs.callPackage ./quarto.nix {rWrapper = null;};
+  in [quarto];
 
   condaPackages = pkgs:
-    with pkgs;
-    [ (callPackage ./conda.nix { installationPath = condaInstallationPath; }) ];
+    with pkgs; [(callPackage ./conda.nix {installationPath = condaInstallationPath;})];
 
   pythonPackages = pkgs:
-    with pkgs;
-    [
+    with pkgs; [
       (python3.withPackages (ps:
         with ps; [
-          poetry 
+          poetry
 
-           jupyter
+          jupyter
           jupyterlab
           numpy
           scipy
@@ -137,7 +150,7 @@ let
     (standardPackages pkgs)
     ++ optionals enableGraphical (graphicalPackages pkgs)
     ++ optionals enableJulia
-    [ (pkgs.callPackage ./julia.nix { juliaVersion = juliaVersion; }) ]
+    [(pkgs.callPackage ./julia.nix {juliaVersion = juliaVersion;})]
     ++ optionals enableQuarto (quartoPackages pkgs)
     ++ optionals enableConda (condaPackages pkgs)
     ++ optionals enableNVIDIA (nvidiaPackages pkgs)
@@ -170,21 +183,24 @@ let
     export EXTRA_LDFLAGS="-L/lib -L${pkgs.linuxPackages.nvidia_x11}/lib"
   '';
 
-  envvars = std_envvars + optionalString enableGraphical graphical_envvars
+  envvars =
+    std_envvars
+    + optionalString enableGraphical graphical_envvars
     + optionalString enableConda conda_envvars
     + optionalString (enableConda && enableJulia) conda_julia_envvars
     + optionalString enableNVIDIA nvidia_envvars;
 
-  multiPkgs = pkgs: with pkgs; [ zlib ];
+  multiPkgs = pkgs: with pkgs; [zlib];
 
   condaInitScript = ''
     conda-install
     conda create -n ${condaJlEnv} python=${pythonVersion}
   '';
-in pkgs.buildFHSEnv {
-  inherit multiPkgs extraOutputsToInstall;
-  targetPkgs = targetPkgs;
-  name = commandName; # Name used to start this UserEnv
-  runScript = commandScript;
-  profile = envvars;
-}
+in
+  pkgs.buildFHSEnv {
+    inherit multiPkgs extraOutputsToInstall;
+    targetPkgs = targetPkgs;
+    name = commandName; # Name used to start this UserEnv - defined as "scientific-fhs" by default
+    runScript = "zsh"; # default is bash
+    profile = envvars;
+  }
