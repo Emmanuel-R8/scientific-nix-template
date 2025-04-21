@@ -1,22 +1,9 @@
-{ lib
-, pkgs
-, enableJulia ? true
-, juliaVersion ? "1.10.1"
-, enableConda ? false
-, enablePython ? false
-, enableQuarto ? true
-, condaInstallationPath ? "~/.conda"
-, condaJlEnv ? "conda_jl"
-, pythonVersion ? "3.8"
-, enableGraphical ? false
-, enableNVIDIA ? false
-, enableNode ? false
-, commandName ? "scientific-fhs"
-, commandScript ? "bash"
-, texliveScheme ? pkgs.texlive.combined.scheme-minimal
-, extraOutputsToInstall ? ["man" "dev"]
-}:
-
+{ lib, pkgs, enableJulia ? true, juliaVersion ? "1.10.1", enableConda ? false
+, enablePython ? false, enableQuarto ? true, condaInstallationPath ? "~/.conda"
+, condaJlEnv ? "conda_jl", pythonVersion ? "3.13", enableGraphical ? false
+, enableNVIDIA ? false, enableNode ? false, commandName ? "scientific-fhs"
+, commandScript ? "bash", texliveScheme ? pkgs.texlive.combined.scheme-minimal
+, extraOutputsToInstall ? [ "man" "dev" ], }:
 with lib;
 let
   standardPackages = pkgs:
@@ -42,12 +29,11 @@ let
       which
       texliveScheme
       ncurses
-      poetry
     ] ++ lib.optional enableNode pkgs.nodejs;
 
   graphicalPackages = pkgs:
     with pkgs; [
-      alsa-lib
+      # alsaLib
       at-spi2-atk
       at-spi2-core
       atk
@@ -62,20 +48,20 @@ let
       gettext
       glfw
       glib
-      glib.out
-      gnome2.GConf
-      gtk2
-      gtk2-x11
+      # glib.out
+      # gnome2.GConf
+      # gtk2
+      # gtk2-x11
       gtk3
       libGL
       libcap
       libdrm
-      libgnome-keyring3
-      libgpg-error
+      # libgnome-keyring3
+      # libgpgerror
       libnotify
       libpng
       libsecret
-      libselinux
+      libselinux # for conda
       libuuid
       libxkbcommon
       mesa # TODO: Use libgbm instead when upstream fixed: https://github.com/NixOS/nixpkgs/issues/218232
@@ -83,14 +69,14 @@ let
       nspr
       nss
       pango
-      pango.out
+      # pango.out
       pdf2svg
-      systemd
+      # systemd
       vulkan-loader
       vulkan-headers
       vulkan-validation-layers
-      wayland
-      xorg.libICE
+      wayland # for Julia
+      xorg.libICE 
       xorg.libSM
       xorg.libX11
       xorg.libXScrnSaver
@@ -120,13 +106,9 @@ let
       linuxPackages.nvidia_x11
     ];
 
-
   quartoPackages = pkgs:
-  let
-    quarto = pkgs.callPackage ./quarto.nix {
-      rWrapper = null;
-    };
-  in [ quarto ];
+    let quarto = pkgs.callPackage ./quarto.nix { rWrapper = null; };
+    in [ quarto ];
 
   condaPackages = pkgs:
     with pkgs;
@@ -135,15 +117,27 @@ let
   pythonPackages = pkgs:
     with pkgs;
     [
-      (python3.withPackages (ps: with ps; [
-        jupyter jupyterlab numpy scipy pandas matplotlib scikit-learn tox pygments
-      ]))
+      (python3.withPackages (ps:
+        with ps; [
+          poetry 
+
+           jupyter
+          jupyterlab
+          numpy
+          scipy
+          pandas
+          matplotlib
+          scikit-learn
+          tox
+          pygments
+        ]))
     ];
 
   targetPkgs = pkgs:
     (standardPackages pkgs)
     ++ optionals enableGraphical (graphicalPackages pkgs)
-    ++ optionals enableJulia [(pkgs.callPackage ./julia.nix { juliaVersion=juliaVersion; })]
+    ++ optionals enableJulia
+    [ (pkgs.callPackage ./julia.nix { juliaVersion = juliaVersion; }) ]
     ++ optionals enableQuarto (quartoPackages pkgs)
     ++ optionals enableConda (condaPackages pkgs)
     ++ optionals enableNVIDIA (nvidiaPackages pkgs)
@@ -187,8 +181,7 @@ let
     conda-install
     conda create -n ${condaJlEnv} python=${pythonVersion}
   '';
-in
-pkgs.buildFHSUserEnv {
+in pkgs.buildFHSEnv {
   inherit multiPkgs extraOutputsToInstall;
   targetPkgs = targetPkgs;
   name = commandName; # Name used to start this UserEnv
