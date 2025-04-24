@@ -1,0 +1,5 @@
+# Nix related
+flake.lock
+result
+.envrc
+
