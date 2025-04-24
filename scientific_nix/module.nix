@@ -76,6 +76,7 @@ in {
         else [];
     in
       [(fhsCommand name "julia") (fhsCommand "${name}-bash" "bash")]
-      ++ python ++ quarto) cfg.juliaVersions;
+      ++ python ++ quarto)
+    cfg.juliaVersions;
   };
 }
