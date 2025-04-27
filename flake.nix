@@ -1,9 +1,5 @@
 {
-  outputs = {
-    self,
-    nixpkgs,
-    ...
-  }: let
+  outputs = {nixpkgs, ...}: let
     pkgs = import nixpkgs {system = "x86_64-linux";};
   in {
     nixosModules.default = import ./scientific-nix/module.nix;

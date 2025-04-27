@@ -2,7 +2,7 @@
   lib,
   pkgs,
   enableJulia ? true,
-  juliaVersion ? "1.10.1",
+  juliaVersion ? "1.11.5",
   enableConda ? false,
   enablePython ? false,
   enableQuarto ? true,
@@ -62,7 +62,7 @@ with lib; let
       gettext
       glfw
       glib
-      # glib.out
+      glib.out
       # gnome2.GConf
       # gtk2
       # gtk2-x11
@@ -83,7 +83,7 @@ with lib; let
       nspr
       nss
       pango
-      # pango.out
+      pango.out
       pdf2svg
       systemd
       vulkan-loader

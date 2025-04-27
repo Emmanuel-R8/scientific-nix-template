@@ -36,16 +36,19 @@
     "1.7.2" = "sha256-p1JEck87LeDnJJyGH79kB4JXwW+0IDvnjxz03VlzupU=";
     "1.6.7" = "sha256-bEUi1ZXky80AFXrEWKcviuwBdXBT0gc/mdqjnkQrKjY=";
   };
+
+  julia = makeStdJulia juliaVersion;
+
   makeStdJulia = version: let
-    url = "https://julialang-s3.julialang.org/bin/linux/x64/${
-      lib.versions.majorMinor version
-    }/julia-${version}-linux-x86_64.tar.gz";
+    majorVersion = lib.versions.majorMinor version;
+    url = "https://julialang-s3.julialang.org/bin/linux/x64/${majorVersion}/julia-${version}-linux-x86_64.tar.gz";
     src = fetchurl {
       inherit url;
       sha256 = versionShas.${version};
     };
   in
     makeJulia version src;
+
   makeJulia = version: src:
     stdenv.mkDerivation {
       name = "julia-${version}";
@@ -60,23 +63,24 @@
         cp -L ${stdenv.cc.cc.lib}/lib/libstdc++.so.6 $out/lib/julia/
       '';
       dontStrip = true;
-      ldLibraryPath = lib.makeLibraryPath [
-        stdenv.cc.cc
-        zlib
-        glib
-        xorg.libXi
-        xorg.libxcb
-        xorg.libXrender
-        xorg.libX11
-        xorg.libSM
-        xorg.libICE
-        xorg.libXext
-        dbus
-        fontconfig
-        freetype
-        libGL
-      ];
+      ldLibraryPath = lib.makeLibraryPath ([
+          stdenv.cc.cc
+          dbus
+          fontconfig
+          freetype
+          libGL
+          zlib
+          glib
+        ]
+        ++ (with xorg; [
+          libXi
+          libxcb
+          libXrender
+          libX11
+          libSM
+          libICE
+          libXext
+        ]));
     };
-  julia = makeStdJulia juliaVersion;
 in
   julia
