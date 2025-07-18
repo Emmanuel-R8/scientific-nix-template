@@ -67,6 +67,7 @@ with lib; let
       # gtk2
       # gtk2-x11
       gtk3
+      jupyter-all
       libGL
       libcap
       libdrm
@@ -91,8 +92,6 @@ with lib; let
       vulkan-validation-layers
       wayland # for Julia
       zlib
-
-
     ])
     ++ (with pkgs.xorg; [
       libICE
@@ -201,7 +200,8 @@ in
   pkgs.buildFHSEnv {
     inherit multiPkgs extraOutputsToInstall;
     targetPkgs = targetPkgs;
-    name = commandName; # Name used to start this UserEnv - defined as "scientific-fhs" by default
+    name =
+      commandName; # Name used to start this UserEnv - defined as "scientific-fhs" by default
     runScript = "zsh"; # default is bash
     profile = envvars;
   }
